@@ -1,4 +1,6 @@
 import java.io.File;
+import java.io.FileWriter;
+import java.util.Scanner;
 import java.util.Arrays;
 
 class Polynomial{
@@ -28,7 +30,52 @@ class Polynomial{
 
     //constructor that takes file as an input and sets Polynomial values based on the input
     public Polynomial(File input){
-        
+        String[] partition;
+        int partIndex = 0;
+        int count = 0;
+
+        try {
+            Scanner read = new Scanner(input);
+            String info = read.nextLine();
+            read.close();
+            if(info.equals(""))
+                return;
+            
+            partition = new String[info.length()];
+
+            for(int i = 0; i < info.length(); i++){
+                if((info.substring(i, i+1).equals("+") || info.substring(i, i+1).equals("-") || i+1 == info.length()) && i != 0){
+                    if(i+1 != info.length()){
+                        partition[count] = info.substring(partIndex, i);
+                        count++;
+                        partIndex = i;
+                    }
+                    else{
+                        partition[count] = info.substring(partIndex);
+                        count++;
+                    }
+                }
+            }
+            coefficients = new double[count];
+            exponents = new int[count];
+
+            boolean x;
+            for(int i = 0; i < count; i++){
+                x = false;
+                for(int j = 0; j < partition[i].length(); j++){
+                    if(partition[i].substring(j, j+1).equals("x")){
+                        coefficients[i] = Double.parseDouble(partition[i].substring(0, j));
+                        exponents[i] = Integer.parseInt(partition[i].substring(j+1));
+                        x = true;
+                    }
+                    if(j+1 == partition[i].length() && x == false){
+                        coefficients[i] = Double.parseDouble(partition[i]);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     //Takes one input with type Polynomial, and returns the result added with the calling object
@@ -73,40 +120,55 @@ class Polynomial{
             if(tempExpo[biggestIndex] <= tempExpo[i])
                 biggestIndex = i;
         }
-        //returnExpo that will be returned
-        int[] returnExpo = new int[biggestIndex + 1];
-        for(int i = 0; i < returnExpo.length; i++)
-            returnExpo[i] = tempExpo[i];
+        //checkExpo for final check before returning
+        int[] checkExpo = new int[biggestIndex + 1];
+        for(int i = 0; i < checkExpo.length; i++)
+            checkExpo[i] = tempExpo[i];
 
-        //returnCoef that will be returned
-        double[] returnCoef = new double[returnExpo.length];
+        //checkCoef for final check before returning
+        double[] checkCoef = new double[checkExpo.length];
         for(int i = 0; i < this.coefficients.length; i++){
-            for(int l = 0; l < returnExpo.length; l++){
-                if(this.exponents[i] == returnExpo[l]){
-                    returnCoef[l] += this.coefficients[i];
+            for(int l = 0; l < checkExpo.length; l++){
+                if(this.exponents[i] == checkExpo[l]){
+                    checkCoef[l] += this.coefficients[i];
                     break;
                 }
             }
         }
 
         for(int i = 0; i < inputPolynomial.coefficients.length; i++){
-            for(int l = 0; l < returnExpo.length; l++){
-                if(inputPolynomial.exponents[i] == returnExpo[l]){
-                    returnCoef[l] += inputPolynomial.coefficients[i];
+            for(int l = 0; l < checkExpo.length; l++){
+                if(inputPolynomial.exponents[i] == checkExpo[l]){
+                    checkCoef[l] += inputPolynomial.coefficients[i];
                     break;
                 }
             }
         }
-        
-        // for(double i : returnCoef)
-        //     System.out.print(i + ",");
-        //     System.out.println("");
-        // for(int i : returnExpo)
-        //     System.out.print(i + ",");
+        int count = 0;
+        for(int i = 0; i < checkCoef.length; i++){
+            if(checkCoef[i] == 0)
+                count++;
+        }
+        int[] returnExpo;
+        double[] returnCoef;
+        if(count !=0){
+            returnExpo = new int[checkExpo.length - count];
+            returnCoef = new double[checkCoef.length - count];
+            int l = 0;
+            for(int i = 0; i < checkCoef.length; i++){
+                if(checkCoef[i] != 0){
+                    returnCoef[l] = checkCoef[i];
+                    returnExpo[l] = checkExpo[i];
+                    l++;
+                }
+            }
+        }
+        else{
+            returnExpo = checkExpo;
+            returnCoef = checkCoef;
+        }
 
         Polynomial returnPolynomial = new Polynomial(returnCoef, returnExpo);
-
-
         return returnPolynomial;
     }
 
@@ -154,16 +216,50 @@ class Polynomial{
             tempPolynomial = new Polynomial(tempCoef, tempExpo);
             returnPolynomial = returnPolynomial.add(tempPolynomial);
         }
-
-        System.out.println("\nCoeff:");
-        for(double j : returnPolynomial.coefficients)
-            System.out.print(j + ",");
-        System.out.println("\nExponents");
-        for(int j : returnPolynomial.exponents)
-            System.out.print(j + ",");
-
-
         return returnPolynomial;
+    }
+
+    //Saving polynomial to a file
+    public void saveToFile(String fileName){
+        File newFile = new File(fileName);
+
+        try {
+            newFile.createNewFile();
+
+            if(this.coefficients == null)
+                return;
+
+            FileWriter writing = new FileWriter(fileName);
+
+            for(int i = 0; i < this.coefficients.length; i++){
+                
+                if(i == 0){
+                    if(this.exponents[i] == 0)
+                        writing.write(Double.toString(this.coefficients[i]));
+                    else
+                        writing.write(Double.toString(this.coefficients[i])+"x"+Integer.toString(this.exponents[i]));
+                }
+                else{
+                    if(this.coefficients[i] > 0){
+                        if(this.exponents[i] == 0)
+                            writing.write("+" + Double.toString(this.coefficients[i]));
+                        else
+                            writing.write("+" + Double.toString(this.coefficients[i])+"x"+Integer.toString(this.exponents[i]));
+                    }
+                    else{
+                        if(this.exponents[i] == 0)
+                            writing.write(Double.toString(this.coefficients[i]));
+                        else
+                            writing.write(Double.toString(this.coefficients[i])+"x"+Integer.toString(this.exponents[i]));
+                    }
+                }
+            }
+
+            writing.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
